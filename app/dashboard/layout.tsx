@@ -1,33 +1,32 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Building2, Home, MessageSquare, FileText, CreditCard, Settings, LogOut } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
-  SidebarProvider,
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
+  SidebarMenuItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+import { Building2, Home, LogOut, MessageSquare, Settings } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const pathname = usePathname()
-  const [userName, setUserName] = useState("John Doe")
+  const pathname = usePathname();
+  const [userName, setUserName] = useState("John Doe");
 
   const navItems = [
     {
@@ -41,25 +40,15 @@ export default function DashboardLayout({
       href: "/dashboard/talk-to-manager",
     },
     {
-      title: "Check for Loan",
-      icon: CreditCard,
-      href: "/dashboard/check-loan",
-    },
-    {
-      title: "Document Registration",
-      icon: FileText,
-      href: "/dashboard/document-registration",
-    },
-    {
       title: "Settings",
       icon: Settings,
       href: "/dashboard/settings",
     },
-  ]
+  ];
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen w-full">
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2 px-2 py-3">
@@ -68,7 +57,7 @@ export default function DashboardLayout({
             </div>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarMenu>
+            <SidebarMenu className="px-2">
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={pathname === item.href}>
@@ -97,29 +86,17 @@ export default function DashboardLayout({
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{userName}</span>
-                  <span className="text-xs text-muted-foreground">Customer</span>
+                  <span className="text-xs text-muted-foreground">
+                    Customer
+                  </span>
                 </div>
               </div>
             </div>
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex-1">
-          <header className="border-b bg-background">
-            <div className="flex h-16 items-center px-4 md:px-6">
-              <SidebarTrigger className="md:hidden mr-2" />
-              <div className="ml-auto flex items-center space-x-4">
-                <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback>JD</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </header>
-          <main className="flex-1 p-4 md:p-6">{children}</main>
-        </div>
+        <main className="flex-1">{children}</main>
       </div>
     </SidebarProvider>
-  )
+  );
 }
-

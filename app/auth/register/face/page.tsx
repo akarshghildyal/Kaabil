@@ -1,29 +1,36 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, ArrowLeft, Camera, Check, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowLeft, Building2, Camera, Check, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function FaceRegistrationPage() {
-  const router = useRouter()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const [capturedImage, setCapturedImage] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [registrationComplete, setRegistrationComplete] = useState(false)
+  const router = useRouter();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   useEffect(() => {
-    startCamera()
+    startCamera();
     return () => {
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop())
+        stream.getTracks().forEach((track) => track.stop());
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const startCamera = async () => {
     try {
@@ -33,49 +40,49 @@ export default function FaceRegistrationPage() {
           height: { ideal: 480 },
           facingMode: "user",
         },
-      })
-      setStream(mediaStream)
+      });
+      setStream(mediaStream);
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
+        videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
-      console.error("Error accessing camera:", err)
+      console.error("Error accessing camera:", err);
     }
-  }
+  };
 
   const captureImage = () => {
     if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current
-      const video = videoRef.current
-      const context = canvas.getContext("2d")
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext("2d");
 
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-      context?.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const imageDataUrl = canvas.toDataURL("image/png")
-      setCapturedImage(imageDataUrl)
+      context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageDataUrl = canvas.toDataURL("image/png");
+      setCapturedImage(imageDataUrl);
     }
-  }
+  };
 
   const resetCapture = () => {
-    setCapturedImage(null)
-  }
+    setCapturedImage(null);
+  };
 
   const completeRegistration = () => {
-    setLoading(true)
+    setLoading(true);
 
     // Simulate face registration process
     setTimeout(() => {
-      setLoading(false)
-      setRegistrationComplete(true)
+      setLoading(false);
+      setRegistrationComplete(true);
 
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        router.push("/dashboard")
-      }, 2000)
-    }, 2000)
-  }
+        router.push("/auth/login");
+      }, 2000);
+    }, 2000);
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
@@ -95,7 +102,9 @@ export default function FaceRegistrationPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Face Registration</CardTitle>
-          <CardDescription>Register your face for secure login and verification</CardDescription>
+          <CardDescription>
+            Register your face for secure login and verification
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {registrationComplete ? (
@@ -103,9 +112,12 @@ export default function FaceRegistrationPage() {
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Check className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Registration Complete!</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                Registration Complete!
+              </h3>
               <p className="text-center text-muted-foreground">
-                Your face has been successfully registered. Redirecting to dashboard...
+                Your face has been successfully registered. Redirecting to
+                login...
               </p>
             </div>
           ) : (
@@ -118,7 +130,13 @@ export default function FaceRegistrationPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
                 )}
                 <canvas ref={canvasRef} className="hidden" />
               </div>
@@ -156,12 +174,12 @@ export default function FaceRegistrationPage() {
         <CardFooter className="flex justify-center">
           {!registrationComplete && !capturedImage && (
             <p className="text-sm text-muted-foreground">
-              Your face data will be securely stored and used only for authentication purposes.
+              Your face data will be securely stored and used only for
+              authentication purposes.
             </p>
           )}
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
-

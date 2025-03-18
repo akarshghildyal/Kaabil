@@ -1,110 +1,119 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
-import { Check, X, AlertCircle, Upload, FileText } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, Check, FileText, Upload, X } from "lucide-react";
+import { useState } from "react";
 
-type LoanType = "personal" | "home" | "business"
-type Step = "type" | "details" | "documents" | "result"
+type LoanType = "personal" | "home" | "business";
+type Step = "type" | "details" | "documents" | "result";
 
 export default function CheckLoanPage() {
-  const [step, setStep] = useState<Step>("type")
-  const [loanType, setLoanType] = useState<LoanType>("personal")
-  const [progress, setProgress] = useState(25)
+  const [step, setStep] = useState<Step>("type");
+  const [loanType, setLoanType] = useState<LoanType>("personal");
+  const [progress, setProgress] = useState(25);
   const [formData, setFormData] = useState({
     amount: "",
     tenure: "",
     income: "",
     employment: "salaried",
     purpose: "",
-  })
+  });
   const [documents, setDocuments] = useState({
     identity: false,
     income: false,
     address: false,
-  })
-  const [result, setResult] = useState<"approved" | "rejected" | null>(null)
+  });
+  const [result, setResult] = useState<"approved" | "rejected" | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleRadioChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, employment: value }))
-  }
+    setFormData((prev) => ({ ...prev, employment: value }));
+  };
 
   const handleNext = () => {
     if (step === "type") {
-      setStep("details")
-      setProgress(50)
+      setStep("details");
+      setProgress(50);
     } else if (step === "details") {
-      setStep("documents")
-      setProgress(75)
+      setStep("documents");
+      setProgress(75);
     } else if (step === "documents") {
       // Simulate loan decision
-      const approved = Math.random() > 0.3 // 70% chance of approval for demo
-      setResult(approved ? "approved" : "rejected")
-      setStep("result")
-      setProgress(100)
+      const approved = Math.random() > 0.3; // 70% chance of approval for demo
+      setResult(approved ? "approved" : "rejected");
+      setStep("result");
+      setProgress(100);
     }
-  }
+  };
 
   const handleBack = () => {
     if (step === "details") {
-      setStep("type")
-      setProgress(25)
+      setStep("type");
+      setProgress(25);
     } else if (step === "documents") {
-      setStep("details")
-      setProgress(50)
+      setStep("details");
+      setProgress(50);
     } else if (step === "result") {
-      setStep("documents")
-      setProgress(75)
+      setStep("documents");
+      setProgress(75);
     }
-  }
+  };
 
   const handleDocumentUpload = (docType: keyof typeof documents) => {
     // Simulate document upload
     setTimeout(() => {
-      setDocuments((prev) => ({ ...prev, [docType]: true }))
-    }, 1000)
-  }
+      setDocuments((prev) => ({ ...prev, [docType]: true }));
+    }, 1000);
+  };
 
   const resetApplication = () => {
-    setStep("type")
-    setProgress(25)
+    setStep("type");
+    setProgress(25);
     setFormData({
       amount: "",
       tenure: "",
       income: "",
       employment: "salaried",
       purpose: "",
-    })
+    });
     setDocuments({
       identity: false,
       income: false,
       address: false,
-    })
-    setResult(null)
-  }
+    });
+    setResult(null);
+  };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
+    <div className="max-w-3xl mx-auto min-h-screen flex flex-col justify-center items-center">
+      <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Loan Application</h1>
-        <p className="text-muted-foreground mt-2">Check your eligibility and apply for a loan</p>
+        <p className="text-muted-foreground mt-2">
+          Now approved and apply for a loan
+        </p>
       </div>
 
-      <div className="mb-8">
+      <div className="mb-8 w-full max-w-xl">
         <Progress value={progress} className="h-2" />
         <div className="flex justify-between mt-2 text-sm text-muted-foreground">
           <span>Loan Type</span>
@@ -118,10 +127,16 @@ export default function CheckLoanPage() {
         <Card>
           <CardHeader>
             <CardTitle>Select Loan Type</CardTitle>
-            <CardDescription>Choose the type of loan you want to apply for</CardDescription>
+            <CardDescription>
+              Choose the type of loan you want to apply for
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={loanType} onValueChange={(value) => setLoanType(value as LoanType)} className="w-full">
+            <Tabs
+              defaultValue={loanType}
+              onValueChange={(value) => setLoanType(value as LoanType)}
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="personal">Personal Loan</TabsTrigger>
                 <TabsTrigger value="home">Home Loan</TabsTrigger>
@@ -131,8 +146,8 @@ export default function CheckLoanPage() {
                 <div className="space-y-2">
                   <h3 className="font-medium">Personal Loan Details</h3>
                   <p className="text-sm text-muted-foreground">
-                    Personal loans can be used for various purposes like medical expenses, education, travel, or debt
-                    consolidation.
+                    Personal loans can be used for various purposes like medical
+                    expenses, education, travel, or debt consolidation.
                   </p>
                 </div>
                 <div className="grid gap-2">
@@ -149,8 +164,8 @@ export default function CheckLoanPage() {
                 <div className="space-y-2">
                   <h3 className="font-medium">Home Loan Details</h3>
                   <p className="text-sm text-muted-foreground">
-                    Home loans can be used to purchase a new house, renovate an existing property, or construct a house
-                    on a plot.
+                    Home loans can be used to purchase a new house, renovate an
+                    existing property, or construct a house on a plot.
                   </p>
                 </div>
                 <div className="grid gap-2">
@@ -167,8 +182,8 @@ export default function CheckLoanPage() {
                 <div className="space-y-2">
                   <h3 className="font-medium">Business Loan Details</h3>
                   <p className="text-sm text-muted-foreground">
-                    Business loans can be used for expanding your business, purchasing equipment, or managing working
-                    capital.
+                    Business loans can be used for expanding your business,
+                    purchasing equipment, or managing working capital.
                   </p>
                 </div>
                 <div className="grid gap-2">
@@ -196,7 +211,9 @@ export default function CheckLoanPage() {
         <Card>
           <CardHeader>
             <CardTitle>Loan Details</CardTitle>
-            <CardDescription>Provide details about your loan requirements and financial status</CardDescription>
+            <CardDescription>
+              Provide details about your loan requirements and financial status
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -279,7 +296,9 @@ export default function CheckLoanPage() {
         <Card>
           <CardHeader>
             <CardTitle>Upload Documents</CardTitle>
-            <CardDescription>Upload the required documents for loan verification</CardDescription>
+            <CardDescription>
+              Upload the required documents for loan verification
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -288,7 +307,9 @@ export default function CheckLoanPage() {
                   <FileText className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Identity Proof</p>
-                    <p className="text-sm text-muted-foreground">Aadhaar Card or PAN Card</p>
+                    <p className="text-sm text-muted-foreground">
+                      Aadhaar Card or PAN Card
+                    </p>
                   </div>
                 </div>
                 {documents.identity ? (
@@ -297,7 +318,11 @@ export default function CheckLoanPage() {
                     Uploaded
                   </div>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => handleDocumentUpload("identity")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDocumentUpload("identity")}
+                  >
                     <Upload className="h-4 w-4 mr-2" />
                     Upload
                   </Button>
@@ -311,7 +336,9 @@ export default function CheckLoanPage() {
                   <FileText className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Income Proof</p>
-                    <p className="text-sm text-muted-foreground">Salary slips or IT returns</p>
+                    <p className="text-sm text-muted-foreground">
+                      Salary slips or IT returns
+                    </p>
                   </div>
                 </div>
                 {documents.income ? (
@@ -320,7 +347,11 @@ export default function CheckLoanPage() {
                     Uploaded
                   </div>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => handleDocumentUpload("income")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDocumentUpload("income")}
+                  >
                     <Upload className="h-4 w-4 mr-2" />
                     Upload
                   </Button>
@@ -334,7 +365,9 @@ export default function CheckLoanPage() {
                   <FileText className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Address Proof</p>
-                    <p className="text-sm text-muted-foreground">Utility bill or Passport</p>
+                    <p className="text-sm text-muted-foreground">
+                      Utility bill or Passport
+                    </p>
                   </div>
                 </div>
                 {documents.address ? (
@@ -343,7 +376,11 @@ export default function CheckLoanPage() {
                     Uploaded
                   </div>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => handleDocumentUpload("address")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDocumentUpload("address")}
+                  >
                     <Upload className="h-4 w-4 mr-2" />
                     Upload
                   </Button>
@@ -353,8 +390,9 @@ export default function CheckLoanPage() {
 
             <div className="bg-muted p-4 rounded-lg">
               <p className="text-sm">
-                <span className="font-medium">Note:</span> All documents should be clear and legible. Our AI system will
-                verify these documents for loan processing.
+                <span className="font-medium">Note:</span> All documents should
+                be clear and legible. Our AI system will verify these documents
+                for loan processing.
               </p>
             </div>
           </CardContent>
@@ -362,7 +400,12 @@ export default function CheckLoanPage() {
             <Button variant="outline" onClick={handleBack}>
               Back
             </Button>
-            <Button onClick={handleNext} disabled={!documents.identity || !documents.income || !documents.address}>
+            <Button
+              onClick={handleNext}
+              disabled={
+                !documents.identity || !documents.income || !documents.address
+              }
+            >
               Submit Application
             </Button>
           </CardFooter>
@@ -373,7 +416,9 @@ export default function CheckLoanPage() {
         <Card>
           <CardHeader>
             <CardTitle>Loan Application Result</CardTitle>
-            <CardDescription>Review the decision on your loan application</CardDescription>
+            <CardDescription>
+              Review the decision on your loan application
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center py-6">
             {result === "approved" ? (
@@ -381,30 +426,44 @@ export default function CheckLoanPage() {
                 <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
                   <Check className="h-10 w-10 text-green-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-green-600">Congratulations!</h2>
-                <p className="text-lg">Your loan application has been approved.</p>
+                <h2 className="text-2xl font-bold text-green-600">
+                  Congratulations!
+                </h2>
+                <p className="text-lg">
+                  Your loan application has been approved.
+                </p>
                 <div className="bg-muted p-4 rounded-lg max-w-md mx-auto mt-4">
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Loan Type:</span>
-                      <span className="font-medium">{loanType.charAt(0).toUpperCase() + loanType.slice(1)} Loan</span>
+                      <span className="font-medium">
+                        {loanType.charAt(0).toUpperCase() + loanType.slice(1)}{" "}
+                        Loan
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Loan Amount:</span>
+                      <span className="text-muted-foreground">
+                        Loan Amount:
+                      </span>
                       <span className="font-medium">₹{formData.amount}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Tenure:</span>
-                      <span className="font-medium">{formData.tenure} months</span>
+                      <span className="font-medium">
+                        {formData.tenure} months
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Interest Rate:</span>
+                      <span className="text-muted-foreground">
+                        Interest Rate:
+                      </span>
                       <span className="font-medium">10.5% p.a.</span>
                     </div>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mt-4">
-                  A representative will contact you shortly with further details.
+                  A representative will contact you shortly with further
+                  details.
                 </p>
               </div>
             ) : (
@@ -413,14 +472,18 @@ export default function CheckLoanPage() {
                   <X className="h-10 w-10 text-red-600" />
                 </div>
                 <h2 className="text-2xl font-bold text-red-600">We're Sorry</h2>
-                <p className="text-lg">Your loan application could not be approved at this time.</p>
+                <p className="text-lg">
+                  Your loan application could not be approved at this time.
+                </p>
                 <div className="bg-muted p-4 rounded-lg max-w-md mx-auto mt-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
                     <div>
                       <p className="font-medium">Possible reasons:</p>
                       <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-muted-foreground">
-                        <li>Insufficient income for the requested loan amount</li>
+                        <li>
+                          Insufficient income for the requested loan amount
+                        </li>
                         <li>Existing loan obligations</li>
                         <li>Credit history concerns</li>
                         <li>Incomplete or inconsistent documentation</li>
@@ -429,7 +492,8 @@ export default function CheckLoanPage() {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mt-4">
-                  You can try again with different loan parameters or contact our support for assistance.
+                  You can try again with different loan parameters or contact
+                  our support for assistance.
                 </p>
               </div>
             )}
@@ -443,6 +507,5 @@ export default function CheckLoanPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }
-

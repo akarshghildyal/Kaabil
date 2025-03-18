@@ -5,7 +5,7 @@ import { MessageSquare, CreditCard, FileText, ArrowRight } from "lucide-react"
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-screen p-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Welcome to VirtualBank</h1>
         <p className="text-muted-foreground mt-2">
@@ -38,40 +38,20 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center">
-              <CreditCard className="mr-2 h-5 w-5 text-primary" />
-              Check for Loan
-            </CardTitle>
-            <CardDescription>Apply for loans and get instant decisions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Apply for personal, home, or business loans with our AI-powered eligibility checker and get instant
-              decisions.
-            </p>
-            <Button asChild className="w-full">
-              <Link href="/dashboard/check-loan">
-                Apply Now
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center">
               <FileText className="mr-2 h-5 w-5 text-primary" />
-              Document Registration
+              Loan Status
             </CardTitle>
-            <CardDescription>Register your documents for faster processing</CardDescription>
+            <CardDescription>
+              Check the status of your loan application
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Upload and register your identity and income documents for faster loan processing and verification.
+            <p className="text-sm text-muted-foreground mb-9">
+              View the current status of your loan application and any required actions.
             </p>
             <Button asChild className="w-full">
-              <Link href="/dashboard/document-registration">
-                Register Documents
+              <Link href="/">
+                Check Status
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

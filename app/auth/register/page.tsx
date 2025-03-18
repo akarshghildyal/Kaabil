@@ -30,7 +30,6 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
 
-    // Simulate registration
     setTimeout(() => {
       setLoading(false)
       router.push("/auth/register/face")
