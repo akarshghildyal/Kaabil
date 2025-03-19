@@ -1,4 +1,5 @@
 config.yaml 
+myenv
 
 # Node.js / Next.js
 client/node_modules/
