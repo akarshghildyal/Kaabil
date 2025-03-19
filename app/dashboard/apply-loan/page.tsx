@@ -17,7 +17,8 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Check, FileText, Upload, X } from "lucide-react";
+import { Check, FileText, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type LoanType = "personal" | "home" | "business";
@@ -50,18 +51,17 @@ export default function CheckLoanPage() {
     setFormData((prev) => ({ ...prev, employment: value }));
   };
 
+  const router = useRouter();
+
   const handleNext = () => {
     if (step === "type") {
       setStep("details");
       setProgress(50);
     } else if (step === "details") {
       setStep("documents");
-      setProgress(75);
+      setProgress(100);
     } else if (step === "documents") {
-      // Simulate loan decision
-      const approved = Math.random() > 0.3; // 70% chance of approval for demo
-      setResult(approved ? "approved" : "rejected");
-      setStep("result");
+      router.push("/dashboard/talk-to-manager?approved");
       setProgress(100);
     }
   };
@@ -119,7 +119,6 @@ export default function CheckLoanPage() {
           <span>Loan Type</span>
           <span>Details</span>
           <span>Documents</span>
-          <span>Result</span>
         </div>
       </div>
 
@@ -408,101 +407,6 @@ export default function CheckLoanPage() {
             >
               Submit Application
             </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {step === "result" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Loan Application Result</CardTitle>
-            <CardDescription>
-              Review the decision on your loan application
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center py-6">
-            {result === "approved" ? (
-              <div className="text-center space-y-4">
-                <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                  <Check className="h-10 w-10 text-green-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-green-600">
-                  Congratulations!
-                </h2>
-                <p className="text-lg">
-                  Your loan application has been approved.
-                </p>
-                <div className="bg-muted p-4 rounded-lg max-w-md mx-auto mt-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Loan Type:</span>
-                      <span className="font-medium">
-                        {loanType.charAt(0).toUpperCase() + loanType.slice(1)}{" "}
-                        Loan
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Loan Amount:
-                      </span>
-                      <span className="font-medium">₹{formData.amount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tenure:</span>
-                      <span className="font-medium">
-                        {formData.tenure} months
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Interest Rate:
-                      </span>
-                      <span className="font-medium">10.5% p.a.</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4">
-                  A representative will contact you shortly with further
-                  details.
-                </p>
-              </div>
-            ) : (
-              <div className="text-center space-y-4">
-                <div className="h-20 w-20 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                  <X className="h-10 w-10 text-red-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-red-600">We're Sorry</h2>
-                <p className="text-lg">
-                  Your loan application could not be approved at this time.
-                </p>
-                <div className="bg-muted p-4 rounded-lg max-w-md mx-auto mt-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Possible reasons:</p>
-                      <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-muted-foreground">
-                        <li>
-                          Insufficient income for the requested loan amount
-                        </li>
-                        <li>Existing loan obligations</li>
-                        <li>Credit history concerns</li>
-                        <li>Incomplete or inconsistent documentation</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4">
-                  You can try again with different loan parameters or contact
-                  our support for assistance.
-                </p>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handleBack}>
-              Back
-            </Button>
-            <Button onClick={resetApplication}>Start New Application</Button>
           </CardFooter>
         </Card>
       )}

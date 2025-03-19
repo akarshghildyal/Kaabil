@@ -5,23 +5,9 @@ import { useGLTF } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 
-export function BranchManagerAvatar() {
+export function BranchManagerAvatar({ mouthOpen }) {
   const { nodes, materials } = useGLTF("/3d/67d9382ff188f383380ff398.glb");
   const headRef = useRef();
-  const [mouthOpen, setMouthOpen] = useState(false);
-
-  const handleClick = (e: KeyboardEvent) => {
-    if (e.key === "m") {
-      setMouthOpen((prev) => !prev);
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("keypress", handleClick);
-    return () => {
-      window.removeEventListener("keypress", handleClick);
-    };
-  }, []);
 
   useEffect(() => {
     if (headRef.current) {

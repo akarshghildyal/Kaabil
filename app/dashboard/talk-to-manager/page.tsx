@@ -6,7 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Camera, CameraOff, Mic, MicOff, Send } from "lucide-react";
+import {
+  Camera,
+  CameraOff,
+  Mic,
+  MicOff,
+  Pause,
+  Play,
+  Send,
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type Message = {
@@ -14,33 +23,130 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  audioBlob?: Blob; // Store the actual blob instead of URL
+  isAudio?: boolean;
 };
 
 export default function TalkToManagerPage() {
+  const approved = useSearchParams().has("approved");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       role: "assistant",
-      content:
-        "Hello! I'm your virtual branch manager. How can I assist you today?",
+      content: !approved
+        ? "Hello! I'm your virtual branch manager. How can I assist you today?"
+        : `You are now approved for a loan. Check your status in the dashboard.
+
+        Loan amount: 5,00,000
+        Interest rate: 8%
+        Monthly EMI: 10,000`,
       timestamp: new Date(),
     },
   ]);
+  const [audioString, setAudioString] = useState<string | undefined>(undefined);
+  const [mouthOpen, setMouthOpen] = useState(false);
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [audioRecorder, setAudioRecorder] = useState<MediaRecorder | null>(
+    null
+  );
+  const router = useRouter();
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
+
+  const getAudioUrl = (blob: Blob): string => {
+    return URL.createObjectURL(blob);
+  };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === "l") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: "assistant",
+            content:
+              "You are now approved for a loan based on our understanding. Taking you to the next step.",
+            timestamp: new Date(),
+          },
+        ]);
+
+        setTimeout(() => {
+          router.push("/dashboard/apply-loan");
+        }, 5000);
+      }
+    };
+
+    window.addEventListener("keypress", handleKeyPress);
+
+    return () => {
+      window.removeEventListener("keypress", handleKeyPress);
+    };
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const getAIResponse = async (audio: Blob) => {
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "Failed to process your request. Please try again.",
+      timestamp: new Date(),
+    };
+
+    const data = new FormData();
+    data.set("user_id", "0");
+    data.set("audio_file", audio);
+
+    await fetch("http://192.168.29.166:8000/query/audio", {
+      method: "POST",
+      body: data,
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return res;
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        const userMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "user",
+          content: data.transcription,
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, userMessage]);
+
+        assistantMessage.content = data.response;
+        setAudioString(`http://192.168.29.166:8000/audio/${data.audio_url}`);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+
+    setIsProcessing(false);
+    setMessages((prev) => [...prev, assistantMessage]);
   };
 
   const handleSendMessage = () => {
@@ -56,18 +162,6 @@ export default function TalkToManagerPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsProcessing(true);
-
-    // Simulate AI response after a delay
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: getAIResponse(input),
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsProcessing(false);
-    }, 2000);
   };
 
   useEffect(() => {
@@ -78,8 +172,44 @@ export default function TalkToManagerPage() {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
+      if (audioStream) {
+        audioStream.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (audioRef.current) {
+      audioRef.current.onplay = () => {
+        interval = setInterval(() => {
+          setMouthOpen((prev) => !prev);
+        }, 240);
+      };
+
+      audioRef.current.onpause = () => {
+        clearInterval(interval);
+        setMouthOpen(false);
+      };
+
+      audioRef.current.onended = () => {
+        clearInterval(interval);
+        setMouthOpen(false);
+        setIsPlayingAudio(null);
+        setAudioString(undefined);
+      };
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.onplay = null;
+        audioRef.current.onpause = null;
+        audioRef.current.onended = null;
+      }
+      clearInterval(interval);
+    };
+  }, [audioRef.current]);
 
   const startCamera = async () => {
     try {
@@ -111,24 +241,99 @@ export default function TalkToManagerPage() {
     }
   };
 
-  const getAIResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
+  const startRecording = async () => {
+    const audioChunks: Blob[] = [];
 
-    if (input.includes("loan") || input.includes("borrow")) {
-      return "We offer various loan options including personal loans, home loans, and business loans. Would you like to check your eligibility for a specific loan type?";
-    } else if (input.includes("document") || input.includes("kyc")) {
-      return "You can register your documents in the Document Registration section. We'll need your identity proof (Aadhaar/PAN) and income proof for loan applications.";
-    } else if (input.includes("interest") || input.includes("rate")) {
-      return "Our current interest rates range from 7.5% to 12.5% depending on the loan type and your credit profile. Would you like me to check the specific rate for you?";
-    } else if (input.includes("hello") || input.includes("hi")) {
-      return "Hello! How can I assist you with your banking needs today?";
-    } else {
-      return "Thank you for your query. I can help you with loan applications, document verification, and general banking information. Could you please provide more details about what you're looking for?";
+    try {
+      const media = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setAudioStream(media);
+      const recorder = new MediaRecorder(media, {
+        mimeType: "audio/webm",
+      });
+      setAudioRecorder(recorder);
+
+      setAudioChunks([]);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+        // Store the blob directly, not the URL
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: "user",
+          content: "Audio message",
+          audioBlob: audioBlob, // Store the blob itself
+          isAudio: true,
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, userMessage]);
+        setIsProcessing(true);
+        await getAIResponse(audioBlob);
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error starting recording:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (audioRecorder) {
+      audioRecorder.stop();
+      if (audioStream) {
+        audioStream.getTracks().forEach((track) => track.stop());
+      }
+      setIsRecording(false);
     }
   };
 
   const toggleRecording = () => {
-    setIsRecording(!isRecording);
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const togglePlayAudio = (messageId: string, audioBlob: Blob) => {
+    if (isPlayingAudio === messageId) {
+      // Pause current audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setIsPlayingAudio(null);
+      // Revoke the URL when done to prevent memory leaks
+      if (audioString) {
+        URL.revokeObjectURL(audioString);
+        setAudioString(undefined);
+      }
+    } else {
+      // Play new audio - create a blob URL only when needed
+      if (audioRef.current) {
+        // Revoke previous URL if exists
+        if (audioString) {
+          URL.revokeObjectURL(audioString);
+        }
+        // Create a new URL from the blob
+        const audioUrl = getAudioUrl(audioBlob);
+        setAudioString(audioUrl);
+        setIsPlayingAudio(messageId);
+
+        audioRef.current.onended = () => {
+          setIsPlayingAudio(null);
+          // Revoke URL after playing
+          URL.revokeObjectURL(audioUrl);
+        };
+      }
+    }
   };
 
   return (
@@ -166,7 +371,37 @@ export default function TalkToManagerPage() {
                         : "bg-muted"
                     }`}
                   >
-                    <p>{message.content}</p>
+                    {message.isAudio && message.audioBlob ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full"
+                          onClick={() => {
+                            // togglePlayAudio(message.id, message.audioBlob!);
+                          }}
+                        >
+                          {isPlayingAudio === message.id ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <div className="h-10 flex items-center">
+                          <div className="w-32 bg-primary-foreground/20 h-1 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full bg-primary-foreground/60 ${
+                                isPlayingAudio === message.id
+                                  ? "animate-progress"
+                                  : ""
+                              }`}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p>{message.content}</p>
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         message.role === "user"
@@ -234,7 +469,7 @@ export default function TalkToManagerPage() {
             </div>
 
             <div className="aspect-video w-full rounded-lg overflow-hidden assistant">
-              <BranchManagerAvatar />
+              <BranchManagerAvatar mouthOpen={mouthOpen} />
             </div>
 
             <Card className="mt-4 p-0">
@@ -270,7 +505,12 @@ export default function TalkToManagerPage() {
                       variant="outline"
                       size="icon"
                       onClick={toggleRecording}
-                      className={cn("w-max px-4")}
+                      className={cn(
+                        "w-max px-4",
+                        isRecording
+                          ? "bg-red-100 hover:bg-red-200 border-red-200"
+                          : ""
+                      )}
                     >
                       {isRecording ? (
                         <span className="animate-pulse">Recording...</span>
@@ -302,6 +542,20 @@ export default function TalkToManagerPage() {
           </div>
         </div>
       </div>
+      <audio ref={audioRef} className="hidden" src={audioString} autoPlay />
+      <style jsx global>{`
+        @keyframes progress {
+          0% {
+            width: 0%;
+          }
+          100% {
+            width: 100%;
+          }
+        }
+        .animate-progress {
+          animation: progress 15s linear forwards;
+        }
+      `}</style>
     </div>
   );
 }
