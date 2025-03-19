@@ -71,7 +71,9 @@ export default function TalkToManagerPage() {
   };
 
   useEffect(() => {
-    startCamera();
+    if (cameraActive) {
+      startCamera();
+    }
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
@@ -148,12 +150,12 @@ export default function TalkToManagerPage() {
                 >
                   {message.role === "assistant" ? (
                     <Avatar>
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                      <AvatarImage src="/bm.png" />
                       <AvatarFallback>BM</AvatarFallback>
                     </Avatar>
                   ) : (
                     <Avatar>
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                      <AvatarImage src="https://github.com/akarshghildyal.png" />
                       <AvatarFallback>ME</AvatarFallback>
                     </Avatar>
                   )}
@@ -185,7 +187,7 @@ export default function TalkToManagerPage() {
               <div className="flex justify-start">
                 <div className="flex gap-3 max-w-[80%]">
                   <Avatar>
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                    <AvatarImage src="/bm.png" />
                     <AvatarFallback>BM</AvatarFallback>
                   </Avatar>
                   <div className="rounded-lg p-3 bg-muted">
@@ -228,9 +230,7 @@ export default function TalkToManagerPage() {
           <div className="h-full flex flex-col">
             <div className="text-center mb-4">
               <h3 className="font-semibold">Branch Manager</h3>
-              <p className="text-sm text-muted-foreground">
-                AI-powered assistant
-              </p>
+              <p className="text-sm text-muted-foreground">Ashok Kumar</p>
             </div>
 
             <div className="aspect-video w-full rounded-lg overflow-hidden assistant">

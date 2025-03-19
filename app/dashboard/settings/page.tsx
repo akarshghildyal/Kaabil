@@ -15,8 +15,8 @@ import { Bell, Lock, User, Shield, LogOut } from "lucide-react"
 
 export default function SettingsPage() {
   const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
+    name: "Abhishek",
+    email: "abhishek@gmail.com",
     phone: "+91 9876543210",
   })
 

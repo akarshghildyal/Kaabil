@@ -26,7 +26,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [userName, setUserName] = useState("John Doe");
+  const [userName, setUserName] = useState("Abhishek");
 
   const navItems = [
     {
@@ -81,8 +81,8 @@ export default function DashboardLayout({
               </div>
               <div className="flex items-center gap-3 px-2 py-2">
                 <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src="https://github.com/akarshghildyal.png" />
+                  <AvatarFallback>AK</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{userName}</span>
