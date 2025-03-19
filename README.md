@@ -8,6 +8,6 @@ Your Virtual Bank Manager. Built during "Standard Chartered Hack'25"
 
 
 <a href="https://youtu.be/wV-E4ZyQujM" target="_blank">
-  <img src="https://img.youtube.com/vi/wV-E4ZyQujM/0.jpg" alt="YouTube Video" style="width: 100%; height: auto;">
+  <img src="https://github.com/user-attachments/assets/e52ccb6a-600f-4357-9c38-b0d1161ade8d" alt="YouTube Video" style="width: 100%; height: auto;">
 </a>
 
