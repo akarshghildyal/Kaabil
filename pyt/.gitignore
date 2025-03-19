@@ -1,5 +1,4 @@
-threeD/
-node_modules
+config.yaml 
 
 # Node.js / Next.js
 client/node_modules/
@@ -61,3 +60,4 @@ desktop.ini
 *.old
 *.orig
 *.lock
+config.yaml
