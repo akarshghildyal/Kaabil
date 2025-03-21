@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,22 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const userId = localStorage.getItem("userId")
+    const userName = localStorage.getItem("userName")
+    const faceVerified = localStorage.getItem("faceVerified")
+
+    // If user is fully authenticated, redirect to dashboard
+    if (userId && userName && faceVerified === "true") {
+      router.push("/dashboard")
+      return
+    }
+
+    setIsCheckingAuth(false)
+  }, [router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -62,7 +78,6 @@ export default function RegisterPage() {
         throw new Error(data.error || "Failed to register")
       }
 
-      // Store user data in localStorage
       localStorage.setItem("userId", data.user.id)
       localStorage.setItem("userName", data.user.name)
 
@@ -83,6 +98,14 @@ export default function RegisterPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   return (

@@ -23,15 +23,37 @@ export default function FaceRegistrationPage() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
+    // Check if user is already logged in
+    const userId = localStorage.getItem("userId");
+    const userName = localStorage.getItem("userName");
+    const faceVerified = localStorage.getItem("faceVerified");
+
+    // If user is fully authenticated, redirect to dashboard
+    if (userId && userName && faceVerified === "true") {
+      router.push("/dashboard");
+      return;
+    }
+
+    // If user is not partially authenticated (no userId/userName), redirect to register
+    if (!userId || !userName) {
+      router.push("/auth/register");
+      return;
+    }
+
+    setIsCheckingAuth(false);
     startCamera();
+  }, [router]);
+
+  useEffect(() => {
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [stream]);
 
   const startCamera = async () => {
     try {
@@ -115,6 +137,9 @@ export default function FaceRegistrationPage() {
       return;
     }
 
+    // Set face verification flag
+    localStorage.setItem("faceVerified", "true");
+
     setLoading(false);
     setRegistrationComplete(true);
     toast.success("Face registered successfully!");
@@ -122,6 +147,14 @@ export default function FaceRegistrationPage() {
       router.push("/auth/login");
     }, 2000);
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">

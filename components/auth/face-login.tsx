@@ -114,6 +114,9 @@ export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
       return;
     }
 
+    // Set face verification flag in localStorage
+    localStorage.setItem("faceVerified", "true");
+
     setVerificationStatus("success");
     setLoading(false);
     toast.success("Face verified successfully!");

@@ -19,7 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Building2, KeyRound, Scan } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,6 +29,29 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("password");
   const [error, setError] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isPartiallyAuthenticated, setIsPartiallyAuthenticated] = useState(false);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    const userName = localStorage.getItem("userName");
+    const faceVerified = localStorage.getItem("faceVerified");
+
+    // If user is fully authenticated, redirect to dashboard
+    if (userId && userName && faceVerified === "true") {
+      router.push("/dashboard");
+      return;
+    }
+
+    // If user is partially authenticated (password only, no face verification)
+    if (userId && userName && !faceVerified) {
+      setIsPartiallyAuthenticated(true);
+      setLoginMethod("face");
+    }
+
+    setIsCheckingAuth(false);
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,10 +83,11 @@ export default function LoginPage() {
 
         toast({
           title: "Login successful",
-          description: "Welcome back to VirtualBank",
+          description: "Please verify your face to continue",
         });
 
         // After successful login with password, switch to face verification
+        setIsPartiallyAuthenticated(true);
         setLoginMethod("face");
 
       } catch (err: any) {
@@ -83,19 +107,31 @@ export default function LoginPage() {
   };
 
   const handleTabChange = (value: string) => {
-    if (loginMethod === "password") {
+    // If user is partially authenticated, don't allow switching back to password tab
+    if (isPartiallyAuthenticated && value === "password") {
       return;
     }
     setLoginMethod(value);
   };
 
   const handleFaceLoginSuccess = () => {
+    // Set face verification flag
+    localStorage.setItem("faceVerified", "true");
+
     toast({
       title: "Face verification successful",
       description: "You are now logged in",
     });
     router.push("/dashboard");
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
@@ -116,7 +152,9 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="text-2xl">Login to your account</CardTitle>
           <CardDescription>
-            Choose your preferred login method below
+            {isPartiallyAuthenticated
+              ? "Please complete face verification to continue"
+              : "Choose your preferred login method below"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -132,7 +170,7 @@ export default function LoginPage() {
             onValueChange={handleTabChange}
           >
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="password">
+              <TabsTrigger value="password" disabled={isPartiallyAuthenticated}>
                 <KeyRound className="h-4 w-4 mr-2" />
                 Password
               </TabsTrigger>
