@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Camera, Check, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface FaceLoginComponentProps {
   onSuccess: () => void;
@@ -67,19 +68,58 @@ export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
     startCamera();
   };
 
-  const verifyFace = () => {
+  const verifyFace = async () => {
     setLoading(true);
     setVerificationStatus("verifying");
 
-    // Simulate face verification process
-    setTimeout(() => {
-      setLoading(false);
-      setVerificationStatus("success");
+    const userId = localStorage.getItem("userId");
 
-      // Call onSuccess after a short delay
-      setTimeout(() => {
-        onSuccess();
-      }, 1500);
+    if (!userId) {
+      toast("User ID not found. Please register first.");
+      setLoading(false);
+      return;
+    }
+
+    if (!capturedImage) {
+      toast("No image captured. Please capture your face.");
+      setLoading(false);
+      return;
+    }
+
+    const body = {
+      image: capturedImage.split(",")[1],
+    };
+
+    const res = await fetch("http://0.0.0.0:8000/recognise/face", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error("Face verification failed. Please try again.");
+      setLoading(false);
+      setVerificationStatus("failed");
+      return;
+    }
+
+    if (data.error) {
+      toast.error(data.error);
+      setLoading(false);
+      setVerificationStatus("failed");
+      return;
+    }
+
+    setVerificationStatus("success");
+    setLoading(false);
+    toast.success("Face verified successfully!");
+
+    setTimeout(() => {
+      onSuccess();
     }, 2000);
   };
 

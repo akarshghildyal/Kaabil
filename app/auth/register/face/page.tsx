@@ -13,6 +13,7 @@ import { ArrowLeft, Building2, Camera, Check, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export default function FaceRegistrationPage() {
   const router = useRouter();
@@ -71,18 +72,54 @@ export default function FaceRegistrationPage() {
     startCamera();
   };
 
-  const completeRegistration = () => {
+  const completeRegistration = async () => {
     setLoading(true);
+    const userId = localStorage.getItem("userId");
 
-    // Simulate face registration process
-    setTimeout(() => {
+    if (!userId) {
+      toast("User ID not found. Please register first.");
       setLoading(false);
-      setRegistrationComplete(true);
+      return;
+    }
 
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        router.push("/auth/login");
-      }, 2000);
+    if (!capturedImage) {
+      toast("No image captured. Please capture your face.");
+      setLoading(false);
+      return;
+    }
+
+    const body = {
+      name: userId,
+      image: capturedImage.split(",")[1],
+    };
+
+    const res = await fetch("http://0.0.0.0:8000/register/face", {
+      body: JSON.stringify(body),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error("Face registration failed. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    if (data.error) {
+      toast.error(data.error);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
+    setRegistrationComplete(true);
+    toast.success("Face registered successfully!");
+    setTimeout(() => {
+      router.push("/auth/login");
     }, 2000);
   };
 
