@@ -1,29 +1,31 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Camera, RefreshCw, Check } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Camera, Check, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface FaceLoginComponentProps {
-  onSuccess: () => void
+  onSuccess: () => void;
 }
 
 export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const [capturedImage, setCapturedImage] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [verificationStatus, setVerificationStatus] = useState<"idle" | "verifying" | "success" | "failed">("idle")
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<
+    "idle" | "verifying" | "success" | "failed"
+  >("idle");
 
   useEffect(() => {
-    startCamera()
+    startCamera();
     return () => {
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop())
+        stream.getTracks().forEach((track) => track.stop());
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const startCamera = async () => {
     try {
@@ -33,59 +35,71 @@ export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
           height: { ideal: 480 },
           facingMode: "user",
         },
-      })
-      setStream(mediaStream)
+      });
+      setStream(mediaStream);
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
+        videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
-      console.error("Error accessing camera:", err)
+      console.error("Error accessing camera:", err);
     }
-  }
+  };
 
   const captureImage = () => {
     if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current
-      const video = videoRef.current
-      const context = canvas.getContext("2d")
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext("2d");
 
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-      context?.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const imageDataUrl = canvas.toDataURL("image/png")
-      setCapturedImage(imageDataUrl)
+      context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageDataUrl = canvas.toDataURL("image/png");
+      setCapturedImage(imageDataUrl);
+      stream?.getTracks().forEach((track) => track.stop());
     }
-  }
+  };
 
   const resetCapture = () => {
-    setCapturedImage(null)
-    setVerificationStatus("idle")
-  }
+    setCapturedImage(null);
+    setVerificationStatus("idle");
+    startCamera();
+  };
 
   const verifyFace = () => {
-    setLoading(true)
-    setVerificationStatus("verifying")
+    setLoading(true);
+    setVerificationStatus("verifying");
 
     // Simulate face verification process
     setTimeout(() => {
-      setLoading(false)
-      setVerificationStatus("success")
+      setLoading(false);
+      setVerificationStatus("success");
 
       // Call onSuccess after a short delay
       setTimeout(() => {
-        onSuccess()
-      }, 1500)
-    }, 2000)
-  }
+        onSuccess();
+      }, 1500);
+    }, 2000);
+  };
 
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-lg bg-muted aspect-video flex items-center justify-center">
         {capturedImage ? (
-          <img src={capturedImage || "/placeholder.svg"} alt="Captured face" className="w-full h-full object-cover" />
+          <img
+            src={capturedImage || "/placeholder.svg"}
+            alt="Captured face"
+            className="w-full h-full object-cover"
+          />
         ) : (
-          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
         )}
         <canvas ref={canvasRef} className="hidden" />
 
@@ -101,11 +115,18 @@ export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
       <div className="flex justify-center gap-4">
         {capturedImage ? (
           <>
-            <Button variant="outline" onClick={resetCapture} disabled={loading || verificationStatus === "success"}>
+            <Button
+              variant="outline"
+              onClick={resetCapture}
+              disabled={loading || verificationStatus === "success"}
+            >
               <RefreshCw className="mr-2 h-4 w-4" />
               Retake
             </Button>
-            <Button onClick={verifyFace} disabled={loading || verificationStatus === "success"}>
+            <Button
+              onClick={verifyFace}
+              disabled={loading || verificationStatus === "success"}
+            >
               {loading ? "Verifying..." : "Verify Face"}
             </Button>
           </>
@@ -118,13 +139,17 @@ export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
       </div>
 
       {verificationStatus === "success" && (
-        <div className="text-center text-sm text-primary">Face verification successful! Redirecting...</div>
+        <div className="text-center text-sm text-primary">
+          Face verification successful! Redirecting...
+        </div>
       )}
 
       <div className="text-sm text-muted-foreground">
-        <p>Please ensure your face is clearly visible and well-lit for accurate verification.</p>
+        <p>
+          Please ensure your face is clearly visible and well-lit for accurate
+          verification.
+        </p>
       </div>
     </div>
-  )
+  );
 }
-

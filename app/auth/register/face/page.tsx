@@ -62,11 +62,13 @@ export default function FaceRegistrationPage() {
       context?.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imageDataUrl = canvas.toDataURL("image/png");
       setCapturedImage(imageDataUrl);
+      stream?.getTracks().forEach((track) => track.stop());
     }
   };
 
   const resetCapture = () => {
     setCapturedImage(null);
+    startCamera();
   };
 
   const completeRegistration = () => {
