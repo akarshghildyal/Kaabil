@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Building2, KeyRound, Scan } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,25 +23,62 @@ import { useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState("password");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     if (loginMethod === "password") {
-      setTimeout(() => {
-        setLoading(false);
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to login");
+        }
+
+        // Store user data in localStorage
+        localStorage.setItem("userId", data.user.id);
+        localStorage.setItem("userName", data.user.name);
+
+        toast({
+          title: "Login successful",
+          description: "Welcome back to VirtualBank",
+        });
+
+        // After successful login with password, switch to face verification
         setLoginMethod("face");
-      }, 1500);
-    } else {
-      setTimeout(() => {
+
+      } catch (err: any) {
+        setError(err.message || "Something went wrong");
+        toast({
+          title: "Login failed",
+          description: err.message || "Something went wrong",
+          variant: "destructive",
+        });
+      } finally {
         setLoading(false);
-        router.push("/dashboard");
-      }, 1500);
+      }
+    } else {
+      // Face login is handled by the FaceLoginComponent
+      setLoading(false);
     }
   };
 
@@ -49,6 +87,14 @@ export default function LoginPage() {
       return;
     }
     setLoginMethod(value);
+  };
+
+  const handleFaceLoginSuccess = () => {
+    toast({
+      title: "Face verification successful",
+      description: "You are now logged in",
+    });
+    router.push("/dashboard");
   };
 
   return (
@@ -74,6 +120,11 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4">
+              {error}
+            </div>
+          )}
           <Tabs
             defaultValue="password"
             className="w-full"
@@ -131,7 +182,7 @@ export default function LoginPage() {
             </TabsContent>
 
             <TabsContent value="face">
-              <FaceLoginComponent onSuccess={() => router.push("/dashboard")} />
+              <FaceLoginComponent onSuccess={handleFaceLoginSuccess} />
             </TabsContent>
           </Tabs>
         </CardContent>

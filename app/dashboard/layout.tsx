@@ -17,8 +17,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Building2, Home, LogOut, MessageSquare, Settings } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { getCurrentUserName, logoutUser } from "@/lib/auth";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function DashboardLayout({
   children,
@@ -26,7 +29,24 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [userName, setUserName] = useState("Abhishek");
+  const router = useRouter();
+  const { toast } = useToast();
+  const [userName, setUserName] = useState<string | null>(null);
+
+  // Load user name from localStorage on component mount
+  useEffect(() => {
+    const name = getCurrentUserName();
+    setUserName(name);
+  }, []);
+
+  const handleLogout = () => {
+    logoutUser();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+    router.push("/auth/login");
+  };
 
   const navItems = [
     {
@@ -47,56 +67,58 @@ export default function DashboardLayout({
   ];
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center gap-2 px-2 py-3">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="font-semibold text-lg">VirtualBank</span>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu className="px-2">
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={pathname === item.href}>
-                    <Link href={item.href}>
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarContent>
-          <SidebarFooter>
-            <div className="px-3 py-2">
-              <div className="flex items-center justify-between mb-2">
-                <ThemeToggle />
-                <Button variant="ghost" size="icon">
-                  <LogOut className="h-5 w-5" />
-                  <span className="sr-only">Log out</span>
-                </Button>
+    <ProtectedRoute>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <Sidebar>
+            <SidebarHeader>
+              <div className="flex items-center gap-2 px-2 py-3">
+                <Building2 className="h-6 w-6 text-primary" />
+                <span className="font-semibold text-lg">VirtualBank</span>
               </div>
-              <div className="flex items-center gap-3 px-2 py-2">
-                <Avatar>
-                  <AvatarImage src="https://github.com/akarshghildyal.png" />
-                  <AvatarFallback>AK</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{userName}</span>
-                  <span className="text-xs text-muted-foreground">
-                    Customer
-                  </span>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarMenu className="px-2">
+                {navItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={pathname === item.href}>
+                      <Link href={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarFooter>
+              <div className="px-3 py-2">
+                <div className="flex items-center justify-between mb-2">
+                  <ThemeToggle />
+                  <Button variant="ghost" size="icon" onClick={handleLogout}>
+                    <LogOut className="h-5 w-5" />
+                    <span className="sr-only">Log out</span>
+                  </Button>
+                </div>
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <Avatar>
+                    <AvatarImage src="/placeholder-user.jpg" />
+                    <AvatarFallback>{userName?.substring(0, 2) || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{userName || "User"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Customer
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </SidebarFooter>
-        </Sidebar>
+            </SidebarFooter>
+          </Sidebar>
 
-        <main className="flex-1">{children}</main>
-      </div>
-    </SidebarProvider>
+          <main className="flex-1">{children}</main>
+        </div>
+      </SidebarProvider>
+    </ProtectedRoute>
   );
 }

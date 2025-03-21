@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, ArrowLeft } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -20,20 +22,67 @@ export default function RegisterPage() {
     confirmPassword: "",
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    // Clear error when user starts typing again
+    if (error) setError("")
   }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
 
-    setTimeout(() => {
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
       setLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to register")
+      }
+
+      // Store user data in localStorage
+      localStorage.setItem("userId", data.user.id)
+      localStorage.setItem("userName", data.user.name)
+
+      toast({
+        title: "Registration successful",
+        description: "Your account has been created",
+      })
+
+      // Redirect to face registration
       router.push("/auth/register/face")
-    }, 1500)
+    } catch (err: any) {
+      setError(err.message || "Something went wrong")
+      toast({
+        title: "Registration failed",
+        description: err.message || "Something went wrong",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -57,6 +106,11 @@ export default function RegisterPage() {
           <CardDescription>Enter your details below to create your account</CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleRegister}>
             <div className="grid gap-4">
               <div className="grid gap-2">
