@@ -31,9 +31,6 @@ class ImageRequest(BaseModel):
     name: str
     image: str  # Base64 encoded image
 
-class RecognitionRequest(BaseModel):
-    image: str  # Base64 encoded image
-
 
 class ResponseModel(BaseModel):
     data: Optional[Dict[str, Any]] = None
@@ -53,7 +50,9 @@ async def register_face(request: ImageRequest) -> ResponseModel:
             return ResponseModel(data=None, error="Name is required")
 
         if not request.image or not isinstance(request.image, str):
-            return ResponseModel(data=None, error="Valid base64 image string is required")
+            return ResponseModel(
+                data=None, error="Valid base64 image string is required"
+            )
 
         # Decode base64 image
         try:
@@ -83,7 +82,7 @@ async def register_face(request: ImageRequest) -> ResponseModel:
 
 
 @app.post("/recognise/face")
-async def recognise_face(request: RecognitionRequest) -> ResponseModel:
+async def recognise_face(request: ImageRequest) -> ResponseModel:
     try:
         # Decode base64 image
         image_data = base64.b64decode(request.image)
@@ -95,11 +94,15 @@ async def recognise_face(request: RecognitionRequest) -> ResponseModel:
 
         # Recognize the face
         user_id = recognize_face_from_image(image)
+        print(f"Recognized user ID: {user_id}")
 
-        if user_id:
-            return ResponseModel(data={"user_id": user_id}, error=None)
-        else:
-            return ResponseModel(data=None, error="No match found or no face detected")
+        if (user_id != request.name):
+            return ResponseModel(data=None, error="No match found")
+
+        return ResponseModel(
+            data={"message": "Face recognized successfully"},
+            error=None,
+        )
 
     except Exception as e:
         return ResponseModel(data=None, error=str(e))

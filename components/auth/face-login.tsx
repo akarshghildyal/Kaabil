@@ -87,6 +87,7 @@ export function FaceLoginComponent({ onSuccess }: FaceLoginComponentProps) {
     }
 
     const body = {
+      name: userId,
       image: capturedImage.split(",")[1],
     };
 
