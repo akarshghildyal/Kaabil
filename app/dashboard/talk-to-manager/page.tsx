@@ -9,14 +9,22 @@ import { cn } from "@/lib/utils";
 import {
   Camera,
   CameraOff,
+  Calendar,
+  FileUp,
+  Home,
+  IdCard,
+  Loader2,
   Mic,
   MicOff,
   Pause,
   Play,
   Send,
+  User,
+  X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Message = {
   id: string;
@@ -25,7 +33,28 @@ type Message = {
   timestamp: Date;
   audioBlob?: Blob; // Store the actual blob instead of URL
   isAudio?: boolean;
+  documentData?: AadhaarData | PANData;
+  documentType?: "aadhar" | "pan";
 };
+
+type DocumentType = "aadhar" | "pan";
+
+interface AadhaarData {
+  aadhaar_number: string | null;
+  full_name: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
+  address: string | null;
+  issue_date: string | null;
+}
+
+interface PANData {
+  pan_number: string | null;
+  full_name: string | null;
+  father_name: string | null;
+  date_of_birth: string | null;
+  issue_date: string | null;
+}
 
 export default function TalkToManagerPage() {
   const approved = useSearchParams().has("approved");
@@ -57,6 +86,10 @@ export default function TalkToManagerPage() {
   const router = useRouter();
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<DocumentType>("aadhar");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getAudioUrl = (blob: Blob): string => {
     return URL.createObjectURL(blob);
@@ -332,6 +365,241 @@ export default function TalkToManagerPage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+
+    setIsUploading(true);
+
+    // Create a message showing the upload
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: `Uploading ${documentType === "aadhar" ? "Aadhaar" : "PAN"} card for verification...`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      // Convert file to base64
+      const base64 = await fileToBase64(selectedFile);
+
+      const response = await fetch("http://localhost:8000/extract/document", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: documentType,
+          image: base64,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to extract document info");
+      }
+
+      const data = await response.json();
+
+      // Add response to messages
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `Here are the details extracted from your ${documentType === "aadhar" ? "Aadhaar" : "PAN"} card:`,
+        timestamp: new Date(),
+        documentData: data.data,
+        documentType: documentType,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+
+      // Add error message
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I couldn't process your document. Please try again.",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data URL prefix
+        const base64Content = base64String.split(',')[1];
+        resolve(base64Content);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const renderAadhaarCard = (data: AadhaarData) => {
+    return (
+      <Card className="w-full overflow-hidden border border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-blue-800">Aadhaar Card</h3>
+            <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Verified</div>
+          </div>
+
+          <div className="grid gap-3">
+            {data.aadhaar_number && (
+              <div className="flex items-center gap-2">
+                <IdCard className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Aadhaar Number</p>
+                  <p className="font-medium">{data.aadhaar_number}</p>
+                </div>
+              </div>
+            )}
+
+            {data.full_name && (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Full Name</p>
+                  <p className="font-medium">{data.full_name}</p>
+                </div>
+              </div>
+            )}
+
+            {data.gender && (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Gender</p>
+                  <p className="font-medium">{data.gender}</p>
+                </div>
+              </div>
+            )}
+
+            {data.date_of_birth && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Date of Birth</p>
+                  <p className="font-medium">{data.date_of_birth}</p>
+                </div>
+              </div>
+            )}
+
+            {data.address && (
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Address</p>
+                  <p className="font-medium">{data.address}</p>
+                </div>
+              </div>
+            )}
+
+            {data.issue_date && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Issue Date</p>
+                  <p className="font-medium">{data.issue_date}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderPANCard = (data: PANData) => {
+    return (
+      <Card className="w-full overflow-hidden border border-yellow-200 bg-gradient-to-br from-yellow-50 to-white">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-yellow-800">PAN Card</h3>
+            <div className="bg-yellow-600 text-white px-2 py-1 rounded text-xs">Verified</div>
+          </div>
+
+          <div className="grid gap-3">
+            {data.pan_number && (
+              <div className="flex items-center gap-2">
+                <IdCard className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <p className="text-xs text-gray-500">PAN Number</p>
+                  <p className="font-medium">{data.pan_number}</p>
+                </div>
+              </div>
+            )}
+
+            {data.full_name && (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Full Name</p>
+                  <p className="font-medium">{data.full_name}</p>
+                </div>
+              </div>
+            )}
+
+            {data.father_name && (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Father's Name</p>
+                  <p className="font-medium">{data.father_name}</p>
+                </div>
+              </div>
+            )}
+
+            {data.date_of_birth && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Date of Birth</p>
+                  <p className="font-medium">{data.date_of_birth}</p>
+                </div>
+              </div>
+            )}
+
+            {data.issue_date && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Issue Date</p>
+                  <p className="font-medium">{data.issue_date}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 flex">
@@ -396,7 +664,18 @@ export default function TalkToManagerPage() {
                         </div>
                       </div>
                     ) : (
-                      <p>{message.content}</p>
+                      <>
+                        <div className="whitespace-pre-line">{message.content}</div>
+
+                        {message.documentData && message.documentType && (
+                          <div className="mt-3">
+                            {message.documentType === 'aadhar'
+                              ? renderAadhaarCard(message.documentData as AadhaarData)
+                              : renderPANCard(message.documentData as PANData)
+                            }
+                          </div>
+                        )}
+                      </>
                     )}
                     <p
                       className={`text-xs mt-1 ${
@@ -431,10 +710,74 @@ export default function TalkToManagerPage() {
                 </div>
               </div>
             )}
+            {isUploading && (
+              <div className="flex justify-start">
+                <div className="flex gap-3 max-w-[80%]">
+                  <Avatar>
+                    <AvatarImage src="/bm.png" />
+                    <AvatarFallback>BM</AvatarFallback>
+                  </Avatar>
+                  <div className="rounded-lg p-3 bg-muted">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Processing document...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
           <div className="p-4 border-t">
+            {selectedFile ? (
+              <div className="mb-2 p-2 bg-muted rounded-md flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileUp className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm truncate max-w-[200px]">
+                    {selectedFile.name}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={clearSelectedFile}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="mb-2">
+                <Tabs
+                  value={documentType}
+                  onValueChange={(v) => setDocumentType(v as DocumentType)}
+                  className="mb-2"
+                >
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="aadhar">Aadhaar Card</TabsTrigger>
+                    <TabsTrigger value="pan">PAN Card</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Upload {documentType === "aadhar" ? "Aadhaar" : "PAN"} Card
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 value={input}
@@ -443,15 +786,23 @@ export default function TalkToManagerPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSendMessage();
+                    if (selectedFile) {
+                      handleFileUpload();
+                    } else {
+                      handleSendMessage();
+                    }
                   }
                 }}
               />
               <Button
-                onClick={handleSendMessage}
-                disabled={input.trim() === ""}
+                onClick={selectedFile ? handleFileUpload : handleSendMessage}
+                disabled={(selectedFile ? false : input.trim() === "") || isUploading}
               >
-                <Send className="h-5 w-5" />
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
               </Button>
             </div>
           </div>
