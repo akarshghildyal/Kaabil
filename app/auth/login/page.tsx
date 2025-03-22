@@ -174,7 +174,7 @@ export default function LoginPage() {
                 <KeyRound className="h-4 w-4 mr-2" />
                 Password
               </TabsTrigger>
-              <TabsTrigger value="face">
+              <TabsTrigger value="face" disabled>
                 <Scan className="h-4 w-4 mr-2" />
                 Face Recognition
               </TabsTrigger>
