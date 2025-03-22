@@ -113,7 +113,7 @@ export default function TalkToManagerPage() {
     data.set("user_id", "0");
     data.set("audio_file", audio);
 
-    await fetch("http://192.168.29.166:8000/query/audio", {
+    await fetch("http://172.20.10.3:8000/query/audio", {
       method: "POST",
       body: data,
     })
@@ -139,7 +139,7 @@ export default function TalkToManagerPage() {
         setMessages((prev) => [...prev, userMessage]);
 
         assistantMessage.content = data.response;
-        setAudioString(`http://192.168.29.166:8000/audio/${data.audio_url}`);
+        setAudioString(`http://172.20.10.3:8000/audio/${data.audio_url}`);
       })
       .catch((error) => {
         console.error("Error:", error);
