@@ -1,15 +1,18 @@
 "use client";
 
 import { BranchManagerAvatar } from "@/components/branch-manager/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
+  AlertCircle,
+  Calendar,
   Camera,
   CameraOff,
-  Calendar,
   FileUp,
   Home,
   IdCard,
@@ -24,7 +27,6 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Message = {
   id: string;
@@ -35,6 +37,8 @@ type Message = {
   isAudio?: boolean;
   documentData?: AadhaarData | PANData;
   documentType?: "aadhar" | "pan";
+  isError?: boolean;
+  errorMessage?: string;
 };
 
 type DocumentType = "aadhar" | "pan";
@@ -58,6 +62,7 @@ interface PANData {
 
 export default function TalkToManagerPage() {
   const approved = useSearchParams().has("approved");
+  const [userName, setUserName] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -90,10 +95,19 @@ export default function TalkToManagerPage() {
   const [documentType, setDocumentType] = useState<DocumentType>("aadhar");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedDocuments, setUploadedDocuments] = useState<{
+    aadhar?: AadhaarData;
+    pan?: PANData;
+  }>({});
 
   const getAudioUrl = (blob: Blob): string => {
     return URL.createObjectURL(blob);
   };
+
+  useEffect(() => {
+    const name = localStorage.getItem("userName");
+    setUserName(name);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -381,7 +395,9 @@ export default function TalkToManagerPage() {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: `Uploading ${documentType === "aadhar" ? "Aadhaar" : "PAN"} card for verification...`,
+      content: `Uploading ${
+        documentType === "aadhar" ? "Aadhaar" : "PAN"
+      } card for verification...`,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -405,19 +421,130 @@ export default function TalkToManagerPage() {
         throw new Error("Failed to extract document info");
       }
 
-      const data = await response.json();
+      const { data, error } = await response.json();
 
-      // Add response to messages
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: `Here are the details extracted from your ${documentType === "aadhar" ? "Aadhaar" : "PAN"} card:`,
-        timestamp: new Date(),
-        documentData: data.data,
-        documentType: documentType,
-      };
+      if (error) {
+        throw new Error(error);
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Check if this is the second document and if data matches
+      if (
+        (documentType === "aadhar" && uploadedDocuments.pan) ||
+        (documentType === "pan" && uploadedDocuments.aadhar)
+      ) {
+        const firstDoc =
+          documentType === "aadhar"
+            ? uploadedDocuments.pan
+            : uploadedDocuments.aadhar;
+        const secondDoc = data;
+
+        // Compare name and DOB
+        let mismatch = false;
+        let mismatchDetails = [];
+
+        // Check name match
+        if (
+          firstDoc?.full_name &&
+          secondDoc.full_name &&
+          !areNamesMatching(firstDoc.full_name, secondDoc.full_name)
+        ) {
+          mismatch = true;
+          mismatchDetails.push("name");
+        }
+
+        // Check DOB match
+        if (firstDoc?.date_of_birth && secondDoc.date_of_birth) {
+          firstDoc.date_of_birth = firstDoc.date_of_birth.replace(/-/g, "/");
+          secondDoc.date_of_birth = secondDoc.date_of_birth.replace(/-/g, "/");
+
+          mismatch = firstDoc.date_of_birth !== secondDoc.date_of_birth;
+          mismatchDetails.push("date of birth");
+        }
+
+        if (mismatch) {
+          // Add error message
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "Document verification failed",
+            timestamp: new Date(),
+            isError: true,
+            errorMessage: `The ${mismatchDetails.join(
+              " and "
+            )} in your documents don't match. Please upload valid documents.`,
+          };
+
+          setMessages((prev) => [...prev, errorMessage]);
+          // Don't update uploadedDocuments with this data since it's mismatched
+        } else {
+          // Add successful response to messages
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: `Here are the details extracted from your ${
+              documentType === "aadhar" ? "Aadhaar" : "PAN"
+            } card:`,
+            timestamp: new Date(),
+            documentData: data,
+            documentType: documentType,
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+
+          // Add success confirmation message
+          setTimeout(() => {
+            const confirmationMessage: Message = {
+              id: (Date.now() + 2).toString(),
+              role: "assistant",
+              content:
+                "Both documents have been successfully verified and the information matches. You can proceed with your application.",
+              timestamp: new Date(),
+            };
+
+            setMessages((prev) => [...prev, confirmationMessage]);
+          }, 1000);
+
+          // Update stored documents
+          setUploadedDocuments((prev) => ({
+            ...prev,
+            [documentType]: data,
+          }));
+        }
+      } else {
+        // This is the first document, just add it to the state
+        // Add response to messages
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `Here are the details extracted from your ${
+            documentType === "aadhar" ? "Aadhaar" : "PAN"
+          } card:`,
+          timestamp: new Date(),
+          documentData: data,
+          documentType: documentType,
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        if (!areNamesMatching(userName || "", data.full_name || "")) {
+          const mismatchMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content:
+              "The name on the document does not match your registered name. Please upload valid documents.",
+            timestamp: new Date(),
+            isError: true,
+          };
+
+          setMessages((prev) => [...prev, mismatchMessage]);
+        } else {
+          // Store the document data
+          setUploadedDocuments((prev) => ({
+            ...prev,
+            [documentType]: data,
+          }));
+        }
+      }
     } catch (error) {
       console.error("Error uploading document:", error);
 
@@ -439,6 +566,29 @@ export default function TalkToManagerPage() {
     }
   };
 
+  // Helper function to compare names with some flexibility
+  const areNamesMatching = (name1: string, name2: string): boolean => {
+    // Convert to lowercase and remove extra spaces
+    const normalize = (name: string) =>
+      name.toLowerCase().trim().replace(/\s+/g, " ");
+
+    const normalizedName1 = normalize(name1);
+    const normalizedName2 = normalize(name2);
+
+    // Check for exact match after normalization
+    if (normalizedName1 === normalizedName2) return true;
+
+    // Split into name parts (to handle order differences)
+    const parts1 = normalizedName1.split(" ");
+    const parts2 = normalizedName2.split(" ");
+
+    // Check if all parts from name1 exist in name2
+    return (
+      parts1.every((part) => parts2.includes(part)) ||
+      parts2.every((part) => parts1.includes(part))
+    );
+  };
+
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -446,10 +596,10 @@ export default function TalkToManagerPage() {
       reader.onload = () => {
         const base64String = reader.result as string;
         // Remove the data URL prefix
-        const base64Content = base64String.split(',')[1];
+        const base64Content = base64String.split(",")[1];
         resolve(base64Content);
       };
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
   };
 
@@ -459,7 +609,9 @@ export default function TalkToManagerPage() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-blue-800">Aadhaar Card</h3>
-            <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Verified</div>
+            <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs">
+              Verified
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -534,7 +686,9 @@ export default function TalkToManagerPage() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-yellow-800">PAN Card</h3>
-            <div className="bg-yellow-600 text-white px-2 py-1 rounded text-xs">Verified</div>
+            <div className="bg-yellow-600 text-white px-2 py-1 rounded text-xs">
+              Verified
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -593,6 +747,16 @@ export default function TalkToManagerPage() {
     );
   };
 
+  const renderErrorCard = (errorMessage: string) => {
+    return (
+      <Alert variant="destructive" className="mt-3">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Verification Failed</AlertTitle>
+        <AlertDescription>{errorMessage}</AlertDescription>
+      </Alert>
+    );
+  };
+
   const clearSelectedFile = () => {
     setSelectedFile(null);
     if (fileInputRef.current) {
@@ -603,7 +767,7 @@ export default function TalkToManagerPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 flex">
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col max-w-3xl">
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div
@@ -665,16 +829,23 @@ export default function TalkToManagerPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="whitespace-pre-line">{message.content}</div>
+                        <div className="whitespace-pre-line">
+                          {message.content}
+                        </div>
 
                         {message.documentData && message.documentType && (
                           <div className="mt-3">
-                            {message.documentType === 'aadhar'
-                              ? renderAadhaarCard(message.documentData as AadhaarData)
-                              : renderPANCard(message.documentData as PANData)
-                            }
+                            {message.documentType === "aadhar"
+                              ? renderAadhaarCard(
+                                  message.documentData as AadhaarData
+                                )
+                              : renderPANCard(message.documentData as PANData)}
                           </div>
                         )}
+
+                        {message.isError &&
+                          message.errorMessage &&
+                          renderErrorCard(message.errorMessage)}
                       </>
                     )}
                     <p
@@ -755,8 +926,18 @@ export default function TalkToManagerPage() {
                   className="mb-2"
                 >
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="aadhar">Aadhaar Card</TabsTrigger>
-                    <TabsTrigger value="pan">PAN Card</TabsTrigger>
+                    <TabsTrigger
+                      value="aadhar"
+                      disabled={Boolean(uploadedDocuments.aadhar)}
+                    >
+                      Aadhaar Card {uploadedDocuments.aadhar && "✓"}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="pan"
+                      disabled={Boolean(uploadedDocuments.pan)}
+                    >
+                      PAN Card {uploadedDocuments.pan && "✓"}
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
                 <div className="flex gap-2 mb-2">
@@ -764,6 +945,11 @@ export default function TalkToManagerPage() {
                     variant="outline"
                     className="w-full"
                     onClick={() => fileInputRef.current?.click()}
+                    disabled={
+                      uploadedDocuments[
+                        documentType as keyof typeof uploadedDocuments
+                      ] !== undefined
+                    }
                   >
                     <FileUp className="h-4 w-4 mr-2" />
                     Upload {documentType === "aadhar" ? "Aadhaar" : "PAN"} Card
@@ -775,40 +961,28 @@ export default function TalkToManagerPage() {
                     accept="image/*"
                     className="hidden"
                   />
+                  <Button
+                    onClick={
+                      selectedFile ? handleFileUpload : handleSendMessage
+                    }
+                    disabled={
+                      (selectedFile ? false : input.trim() === "") ||
+                      isUploading
+                    }
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                  </Button>
                 </div>
               </div>
             )}
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your message..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (selectedFile) {
-                      handleFileUpload();
-                    } else {
-                      handleSendMessage();
-                    }
-                  }
-                }}
-              />
-              <Button
-                onClick={selectedFile ? handleFileUpload : handleSendMessage}
-                disabled={(selectedFile ? false : input.trim() === "") || isUploading}
-              >
-                {isUploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
           </div>
         </div>
 
-        <div className="w-1/2 border-l px-4 py-6 hidden lg:block">
+        <div className="max-w-md h-full w-full fixed top-0 right-0 border-l px-4 py-6 hidden lg:block">
           <div className="h-full flex flex-col">
             <div className="text-center mb-4">
               <h3 className="font-semibold">Branch Manager</h3>
