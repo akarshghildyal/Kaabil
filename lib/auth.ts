@@ -32,4 +32,5 @@ export const logoutUser = (): void => {
 
   localStorage.removeItem("userId");
   localStorage.removeItem("userName");
+  localStorage.removeItem("faceVerified");
 };
