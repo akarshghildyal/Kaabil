@@ -45,3 +45,5 @@ __pycache__/
 *.mp3
 config.yaml
 myenv
+
+*.sqlite
