@@ -35,11 +35,7 @@ export default function TalkToManagerPage() {
       role: "assistant",
       content: !approved
         ? "Hello! I'm your virtual branch manager. How can I assist you today?"
-        : `You are now approved for a loan. Check your status in the dashboard.
-
-        Loan amount: 5,00,000
-        Interest rate: 8%
-        Monthly EMI: 10,000`,
+        : `You are now approved for a loan. Check your status in the dashboard.`,
       timestamp: new Date(),
     },
   ]);
