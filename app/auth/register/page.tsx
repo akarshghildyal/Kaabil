@@ -1,62 +1,73 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, ArrowLeft } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { ArrowLeft, Building2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Check if user is already logged in
   useEffect(() => {
-    const userId = localStorage.getItem("userId")
-    const userName = localStorage.getItem("userName")
-    const faceVerified = localStorage.getItem("faceVerified")
+    const userId = localStorage.getItem("userId");
+    const userName = localStorage.getItem("userName");
+    const faceVerified = localStorage.getItem("faceVerified");
 
     // If user is fully authenticated, redirect to dashboard
     if (userId && userName && faceVerified === "true") {
-      router.push("/dashboard")
-      return
+      router.push("/dashboard");
+      return;
+    } else if (userId && userName && !faceVerified) {
+      // If user is partially authenticated (password only, no face verification)
+      router.push("/auth/login");
+      return;
     }
 
-    setIsCheckingAuth(false)
-  }, [router])
+    setIsCheckingAuth(false);
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing again
-    if (error) setError("")
-  }
+    if (error) setError("");
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     // Basic validation
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      setLoading(false)
-      return
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
     }
 
     try {
@@ -70,42 +81,42 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to register")
+        throw new Error(data.error || "Failed to register");
       }
 
-      localStorage.setItem("userId", data.user.id)
-      localStorage.setItem("userName", data.user.name)
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userName", data.user.name);
 
       toast({
         title: "Registration successful",
         description: "Your account has been created",
-      })
+      });
 
       // Redirect to face registration
-      router.push("/auth/register/face")
+      router.push("/auth/register/face");
     } catch (err: any) {
-      setError(err.message || "Something went wrong")
+      setError(err.message || "Something went wrong");
       toast({
         title: "Registration failed",
         description: err.message || "Something went wrong",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -126,7 +137,9 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Create an account</CardTitle>
-          <CardDescription>Enter your details below to create your account</CardDescription>
+          <CardDescription>
+            Enter your details below to create your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -197,6 +210,5 @@ export default function RegisterPage() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
-
