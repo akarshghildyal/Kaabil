@@ -16,10 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { logoutUser } from "@/lib/auth";
 import { ArrowLeft, Building2, KeyRound, Scan } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,8 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState("password");
   const [error, setError] = useState("");
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isPartiallyAuthenticated, setIsPartiallyAuthenticated] = useState(false);
+  const [isPartiallyAuthenticated, setIsPartiallyAuthenticated] =
+    useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -89,7 +91,6 @@ export default function LoginPage() {
         // After successful login with password, switch to face verification
         setIsPartiallyAuthenticated(true);
         setLoginMethod("face");
-
       } catch (err: any) {
         setError(err.message || "Something went wrong");
         toast({
@@ -224,7 +225,7 @@ export default function LoginPage() {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
+        <CardFooter className="flex flex-col">
           <div className="text-sm text-center text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link
@@ -233,6 +234,19 @@ export default function LoginPage() {
             >
               Register
             </Link>
+          </div>
+          <div className="text-sm text-center text-muted-foreground">
+            Not you?
+            <Button
+              onClick={() => {
+                logoutUser();
+                router.push("/");
+              }}
+              variant={"link"}
+              className="text-primary hover:underline"
+            >
+              Logout
+            </Button>
           </div>
         </CardFooter>
       </Card>

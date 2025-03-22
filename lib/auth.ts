@@ -9,7 +9,9 @@ export const isUserLoggedIn = (): boolean => {
   if (typeof window === "undefined") return false;
 
   const userId = localStorage.getItem("userId");
-  return Boolean(userId);
+  const faceVerified = localStorage.getItem("faceVerified");
+  const userName = localStorage.getItem("userName");
+  return !!userId && !!userName && faceVerified === "true";
 };
 
 // Get the current user's ID from localStorage
